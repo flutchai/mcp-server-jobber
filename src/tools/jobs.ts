@@ -82,8 +82,7 @@ export const jobTools: ToolDefinition[] = [
 
   {
     name: "create_job",
-    description:
-      "Create a new job in Jobber. Requires a client ID and title.",
+    description: "Create a new job in Jobber. Requires a client ID and title.",
     inputSchema: {
       type: "object",
       properties: {
@@ -109,7 +108,8 @@ export const jobTools: ToolDefinition[] = [
       if (startAt) input.startAt = startAt;
       if (endAt) input.endAt = endAt;
 
-      const data = await client.mutate(`
+      const data = await client.mutate(
+        `
         mutation CreateJob($input: JobCreateInput!) {
           jobCreate(input: $input) {
             job {
@@ -124,7 +124,9 @@ export const jobTools: ToolDefinition[] = [
             userErrors { message path }
           }
         }
-      `, { input });
+      `,
+        { input },
+      );
 
       return JSON.stringify(data.jobCreate, null, 2);
     },

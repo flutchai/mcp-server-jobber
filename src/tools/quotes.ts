@@ -47,8 +47,7 @@ export const quoteTools: ToolDefinition[] = [
 
   {
     name: "create_quote",
-    description:
-      "Create a new quote in Jobber for a client. Optionally include line items.",
+    description: "Create a new quote in Jobber for a client. Optionally include line items.",
     inputSchema: {
       type: "object",
       properties: {
@@ -83,7 +82,8 @@ export const quoteTools: ToolDefinition[] = [
       if (message) input.message = message;
       if (lineItems) input.lineItems = lineItems;
 
-      const data = await client.mutate(`
+      const data = await client.mutate(
+        `
         mutation CreateQuote($input: QuoteCreateInput!) {
           quoteCreate(input: $input) {
             quote {
@@ -97,7 +97,9 @@ export const quoteTools: ToolDefinition[] = [
             userErrors { message path }
           }
         }
-      `, { input });
+      `,
+        { input },
+      );
 
       return JSON.stringify(data.quoteCreate, null, 2);
     },

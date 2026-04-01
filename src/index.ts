@@ -26,8 +26,7 @@ class JobberMcpServer {
 
     this.setupHandlers();
 
-    this.server.onerror = (error) =>
-      console.error("[Jobber MCP Error]", error);
+    this.server.onerror = (error) => console.error("[Jobber MCP Error]", error);
     process.on("SIGINT", async () => {
       await this.server.close();
       process.exit(0);
@@ -43,46 +42,46 @@ class JobberMcpServer {
       })),
     }));
 
-    this.server.setRequestHandler(
-      CallToolRequestSchema,
-      async (request) => {
-        const { name, arguments: args = {} } = request.params;
-        const tool = this.toolMap.get(name);
+    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      const { name, arguments: args = {} } = request.params;
+      const tool = this.toolMap.get(name);
 
-        if (!tool) {
-          throw new McpError(
-            ErrorCode.MethodNotFound,
-            `Unknown tool: ${name}`,
-          );
-        }
+      if (!tool) {
+        throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
+      }
 
+      try {
+        const token = JobberClient.resolveToken(args);
+        const client = new JobberClient(token);
+
+        // Strip internal params before passing to handler
+        const { _token, ...cleanArgs } = args;
+        const result = await tool.handler(client, cleanArgs);
+
+        // Detect userErrors / action:"error" in result
+        let isError = false;
         try {
-          const token = JobberClient.resolveToken(args);
-          const client = new JobberClient(token);
-
-          // Strip internal params before passing to handler
-          const { _token, ...cleanArgs } = args;
-          const result = await tool.handler(client, cleanArgs);
-
-          return { content: [{ type: "text", text: result }] };
-        } catch (error: any) {
-          if (error instanceof McpError) throw error;
-
-          const status = error?.response?.status;
-          if (status === 401) {
-            throw new McpError(
-              ErrorCode.InvalidRequest,
-              "Jobber access token is invalid or expired. Refresh the token and try again.",
-            );
+          const parsed = JSON.parse(result);
+          if (parsed.action === "error" || parsed.userErrors?.length) {
+            isError = true;
           }
+        } catch {}
 
+        return { content: [{ type: "text", text: result }], isError };
+      } catch (error: any) {
+        if (error instanceof McpError) throw error;
+
+        const status = error?.response?.status;
+        if (status === 401) {
           throw new McpError(
-            ErrorCode.InternalError,
-            `Jobber API error: ${error.message}`,
+            ErrorCode.InvalidRequest,
+            "Jobber access token is invalid or expired. Refresh the token and try again.",
           );
         }
-      },
-    );
+
+        throw new McpError(ErrorCode.InternalError, `Jobber API error: ${error.message}`);
+      }
+    });
   }
 
   async run(): Promise<void> {

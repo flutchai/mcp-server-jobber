@@ -2,7 +2,7 @@ import axios, { type AxiosInstance } from "axios";
 import type { JobberGraphQLClient } from "./types.js";
 
 const GRAPHQL_ENDPOINT = "https://api.getjobber.com/api/graphql";
-const API_VERSION = "2023-11-15";
+const API_VERSION = "2026-03-10";
 const TIMEOUT_MS = 15_000;
 
 export class JobberClient implements JobberGraphQLClient {
@@ -14,7 +14,7 @@ export class JobberClient implements JobberGraphQLClient {
       timeout: TIMEOUT_MS,
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         "X-JOBBER-GRAPHQL-VERSION": API_VERSION,
       },
     });
@@ -43,10 +43,7 @@ export class JobberClient implements JobberGraphQLClient {
     return this.execute(mutation, variables);
   }
 
-  private async execute(
-    query: string,
-    variables?: Record<string, any>,
-  ): Promise<any> {
+  private async execute(query: string, variables?: Record<string, any>): Promise<any> {
     const response = await this.http.post("", { query, variables });
     const { data, errors } = response.data;
 

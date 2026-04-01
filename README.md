@@ -57,18 +57,18 @@ Add to your `claude_desktop_config.json`:
 
 ## Available Tools
 
-| Tool | Description |
-|------|-------------|
-| `list_clients` | List clients with optional search and pagination |
-| `get_client` | Get detailed client info by ID |
-| `create_client` | Create a new client |
-| `update_client` | Update an existing client |
-| `list_jobs` | List jobs with pagination |
-| `get_job` | Get detailed job info by ID |
-| `create_job` | Create a new job for a client |
-| `list_quotes` | List quotes with pagination |
-| `create_quote` | Create a quote with optional line items |
-| `list_invoices` | List invoices with pagination |
+| Tool            | Description                                      |
+| --------------- | ------------------------------------------------ |
+| `list_clients`  | List clients with optional search and pagination |
+| `get_client`    | Get detailed client info by ID                   |
+| `create_client` | Create a new client                              |
+| `update_client` | Update an existing client                        |
+| `list_jobs`     | List jobs with pagination                        |
+| `get_job`       | Get detailed job info by ID                      |
+| `create_job`    | Create a new job for a client                    |
+| `list_quotes`   | List quotes with pagination                      |
+| `create_quote`  | Create a quote with optional line items          |
+| `list_invoices` | List invoices with pagination                    |
 
 ## Development
 

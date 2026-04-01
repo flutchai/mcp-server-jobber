@@ -24,12 +24,12 @@ export const clientTools: ToolDefinition[] = [
     },
     handler: async (client, args) => {
       const { first = 20, after, searchTerm } = args;
-      const filter = searchTerm ? `, filter: { searchTerm: "${searchTerm}" }` : "";
+      const search = searchTerm ? `, searchTerm: "${searchTerm}"` : "";
       const afterParam = after ? `, after: "${after}"` : "";
 
       const data = await client.query(`
         query {
-          clients(first: ${first}${afterParam}${filter}) {
+          clients(first: ${first}${afterParam}${search}) {
             nodes {
               id
               firstName
@@ -87,8 +87,7 @@ export const clientTools: ToolDefinition[] = [
 
   {
     name: "create_client",
-    description:
-      "Create a new client in Jobber. Returns the created client or validation errors.",
+    description: "Create a new client in Jobber. Returns the created client or validation errors.",
     inputSchema: {
       type: "object",
       properties: {
@@ -112,7 +111,8 @@ export const clientTools: ToolDefinition[] = [
         input.phones = [{ number: phone, description: "MAIN", primary: true }];
       }
 
-      const data = await client.mutate(`
+      const data = await client.mutate(
+        `
         mutation CreateClient($input: ClientCreateInput!) {
           clientCreate(input: $input) {
             client {
@@ -126,16 +126,112 @@ export const clientTools: ToolDefinition[] = [
             userErrors { message path }
           }
         }
-      `, { input });
+      `,
+        { input },
+      );
 
       return JSON.stringify(data.clientCreate, null, 2);
     },
   },
 
   {
-    name: "update_client",
+    name: "upsert_client",
     description:
-      "Update an existing client in Jobber. Only provided fields are updated.",
+      "Find a client by email or phone; create if not found. Returns the existing or newly created client.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        firstName: { type: "string", description: "Client first name" },
+        lastName: { type: "string", description: "Client last name" },
+        companyName: { type: "string", description: "Company name" },
+        email: { type: "string", description: "Email to search by and set on create" },
+        phone: { type: "string", description: "Phone to search by and set on create" },
+      },
+      required: ["firstName"],
+    },
+    handler: async (client, args) => {
+      const { firstName, lastName, companyName, email, phone } = args;
+      console.error(
+        `[upsert_client] args: firstName=${firstName}, lastName=${lastName}, email=${email}, phone=${phone}, companyName=${companyName}`,
+      );
+
+      // 1. Search by email or phone
+      const searchTerm = email || phone;
+      if (searchTerm) {
+        console.error(`[upsert_client] Searching by searchTerm="${searchTerm}"`);
+        const searchData = await client.query(`
+          query {
+            clients(first: 1, searchTerm: "${searchTerm}") {
+              nodes {
+                id
+                firstName
+                lastName
+                companyName
+                emails { address }
+                phones { number }
+              }
+              totalCount
+            }
+          }
+        `);
+
+        console.error(
+          `[upsert_client] Search result: totalCount=${searchData.clients?.totalCount}, nodes=${JSON.stringify(searchData.clients?.nodes)}`,
+        );
+
+        const existing = searchData.clients?.nodes?.[0];
+        if (existing) {
+          console.error(`[upsert_client] Found existing client id=${existing.id}`);
+          return JSON.stringify({ action: "found", client: existing }, null, 2);
+        }
+      }
+
+      // 2. Not found — create
+      const input: Record<string, any> = { firstName, lastName: lastName || "" };
+      if (companyName) input.companyName = companyName;
+      if (email) {
+        input.emails = [{ address: email, description: "MAIN", primary: true }];
+      }
+      if (phone) {
+        input.phones = [{ number: phone, description: "MAIN", primary: true }];
+      }
+
+      console.error(`[upsert_client] Creating client with input: ${JSON.stringify(input)}`);
+
+      const data = await client.mutate(
+        `
+        mutation CreateClient($input: ClientCreateInput!) {
+          clientCreate(input: $input) {
+            client {
+              id
+              firstName
+              lastName
+              companyName
+              emails { address }
+              phones { number }
+            }
+            userErrors { message path }
+          }
+        }
+      `,
+        { input },
+      );
+
+      if (data.clientCreate?.userErrors?.length) {
+        console.error(
+          `[upsert_client] Create errors: ${JSON.stringify(data.clientCreate.userErrors)}`,
+        );
+        return JSON.stringify({ action: "error", errors: data.clientCreate.userErrors }, null, 2);
+      }
+
+      console.error(`[upsert_client] Created client id=${data.clientCreate?.client?.id}`);
+      return JSON.stringify({ action: "created", client: data.clientCreate?.client }, null, 2);
+    },
+  },
+
+  {
+    name: "update_client",
+    description: "Update an existing client in Jobber. Only provided fields are updated.",
     inputSchema: {
       type: "object",
       properties: {
@@ -162,7 +258,8 @@ export const clientTools: ToolDefinition[] = [
         input.phones = [{ number: phone, description: "MAIN", primary: true }];
       }
 
-      const data = await client.mutate(`
+      const data = await client.mutate(
+        `
         mutation UpdateClient($clientId: EncodedId!, $input: ClientUpdateInput!) {
           clientUpdate(clientId: $clientId, input: $input) {
             client {
@@ -176,7 +273,9 @@ export const clientTools: ToolDefinition[] = [
             userErrors { message path }
           }
         }
-      `, { clientId, input });
+      `,
+        { clientId, input },
+      );
 
       return JSON.stringify(data.clientUpdate, null, 2);
     },
